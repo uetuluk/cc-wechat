@@ -105,14 +105,10 @@ const contextTokens = new Map<string, string>()
 async function main() {
   const client = createILinkClient()
 
-  // Login first (before MCP connect, outputs to stderr)
-  const token = await login(client)
-  client.setToken(token)
-
   // Load sender allowlist
   const allowed = await loadAllowlist()
 
-  // Create MCP server
+  // Create MCP server FIRST so Claude Code handshake succeeds immediately
   const mcp = new Server(
     { name: 'wechat', version: '0.1.0' },
     {
@@ -215,8 +211,14 @@ async function main() {
     },
   )
 
-  // Connect MCP over stdio
+  // Connect MCP over stdio FIRST so Claude Code handshake succeeds
   await mcp.connect(new StdioServerTransport())
+
+  // Now login to WeChat (QR code outputs to stderr, doesn't interfere with stdio)
+  const token = await login(client)
+  client.setToken(token)
+
+  console.error('[wechat] Connected and logged in, starting message poller...')
 
   // --- Permission verdict regex ---
   const PERMISSION_REPLY_RE =
