@@ -6,6 +6,7 @@ import {
   CallToolRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
+import qrcode from 'qrcode-terminal'
 import { createILinkClient } from './ilink-client'
 import { startPoller } from './poller'
 import type { WeixinMessage, Credentials } from './types'
@@ -57,6 +58,14 @@ async function saveCredentials(creds: Credentials): Promise<void> {
 
 // --- QR Login via MCP elicitation ---
 
+function generateQrText(data: string): Promise<string> {
+  return new Promise((resolve) => {
+    qrcode.generate(data, { small: true }, (text: string) => {
+      resolve(text)
+    })
+  })
+}
+
 async function login(
   client: ReturnType<typeof createILinkClient>,
   mcp: InstanceType<typeof Server>,
@@ -70,14 +79,16 @@ async function login(
   console.error('[wechat] No saved credentials, starting QR login...')
   const qr = await client.getQrCode()
 
+  // Generate text-art QR code for the elicitation message
+  const qrText = await generateQrText(qr.qrcode)
+
   // Use MCP elicitation to show QR code to the user and wait for scan
-  // The QR code URL is shown in the form message; user confirms after scanning
   const elicitPromise = mcp.elicitInput({
     mode: 'form',
     message:
       `WeChat Login Required\n\n` +
       `Open WeChat on your phone, tap + > Scan, and scan this QR code:\n\n` +
-      `${qr.qrcode}\n\n` +
+      `${qrText}\n\n` +
       `Click "Confirm" below after you have scanned and approved in WeChat.`,
     requestedSchema: {
       type: 'object',
