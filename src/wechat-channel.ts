@@ -6,7 +6,6 @@ import {
   CallToolRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
-import qrcode from 'qrcode-terminal'
 import { createILinkClient } from './ilink-client'
 import { startPoller } from './poller'
 import type { WeixinMessage, Credentials } from './types'
@@ -56,10 +55,11 @@ async function saveCredentials(creds: Credentials): Promise<void> {
   await writeFile(CREDENTIALS_PATH, JSON.stringify(creds, null, 2))
 }
 
-// --- QR Login ---
+// --- QR Login via MCP elicitation ---
 
 async function login(
   client: ReturnType<typeof createILinkClient>,
+  mcp: InstanceType<typeof Server>,
 ): Promise<string> {
   const saved = await loadCredentials()
   if (saved?.bot_token) {
@@ -70,31 +70,53 @@ async function login(
   console.error('[wechat] No saved credentials, starting QR login...')
   const qr = await client.getQrCode()
 
-  // Display QR code in terminal (stderr so it doesn't interfere with stdio MCP)
-  qrcode.generate(qr.qrcode, { small: true }, (code: string) => {
-    console.error(code)
-    console.error('[wechat] Scan the QR code above with WeChat to log in')
+  // Use MCP elicitation to show QR code to the user and wait for scan
+  // The QR code URL is shown in the form message; user confirms after scanning
+  const elicitPromise = mcp.elicitInput({
+    mode: 'form',
+    message:
+      `WeChat Login Required\n\n` +
+      `Open WeChat on your phone, tap + > Scan, and scan this QR code:\n\n` +
+      `${qr.qrcode}\n\n` +
+      `Click "Confirm" below after you have scanned and approved in WeChat.`,
+    requestedSchema: {
+      type: 'object',
+      properties: {
+        confirmed: {
+          type: 'boolean',
+          title: 'I have scanned the QR code',
+          default: true,
+        },
+      },
+    },
   })
 
-  // Poll for confirmation
-  while (true) {
-    await new Promise((r) => setTimeout(r, 1000))
-    const status = await client.pollQrStatus(qr.qrcode)
+  // Poll for QR confirmation in parallel — it may complete before user clicks confirm
+  const pollPromise = (async () => {
+    while (true) {
+      await new Promise((r) => setTimeout(r, 1000))
+      const status = await client.pollQrStatus(qr.qrcode)
 
-    if (status.status === 'confirmed' && status.bot_token) {
-      console.error('[wechat] Login confirmed!')
-      const creds: Credentials = {
-        bot_token: status.bot_token,
-        baseurl: status.baseurl,
+      if (status.status === 'confirmed' && status.bot_token) {
+        return status
       }
-      await saveCredentials(creds)
-      return status.bot_token
-    }
 
-    if (status.status === 'expired') {
-      throw new Error('QR code expired. Restart the channel to try again.')
+      if (status.status === 'expired') {
+        throw new Error('QR code expired. Restart the channel to try again.')
+      }
     }
+  })()
+
+  // Wait for WeChat confirmation (polling completes when scan is approved)
+  const status = await pollPromise
+
+  console.error('[wechat] Login confirmed!')
+  const creds: Credentials = {
+    bot_token: status.bot_token!,
+    baseurl: status.baseurl,
   }
+  await saveCredentials(creds)
+  return status.bot_token!
 }
 
 // --- Context token store (maps user_id -> latest context_token) ---
@@ -214,8 +236,8 @@ async function main() {
   // Connect MCP over stdio FIRST so Claude Code handshake succeeds
   await mcp.connect(new StdioServerTransport())
 
-  // Now login to WeChat (QR code outputs to stderr, doesn't interfere with stdio)
-  const token = await login(client)
+  // Now login to WeChat via MCP elicitation (shows QR code to user)
+  const token = await login(client, mcp)
   client.setToken(token)
 
   console.error('[wechat] Connected and logged in, starting message poller...')
