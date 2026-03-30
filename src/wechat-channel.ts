@@ -272,6 +272,9 @@ async function main() {
       try {
         const senderId = msg.from_user_id
         console.error(`[wechat] Received message from ${senderId}`)
+        // Debug: write received messages to a file so we can verify the poller works
+        const debugPath = join(PROJECT_DIR, 'debug-messages.log')
+        writeFile(debugPath, `${new Date().toISOString()} from=${senderId} text=${JSON.stringify(msg.item_list)}\n`, { flag: 'a' }).catch(() => {})
 
         // Gate on sender allowlist (empty = allow all for initial setup)
         if (allowed.size > 0 && !allowed.has(senderId)) {
