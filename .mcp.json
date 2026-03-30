@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "wechat": {
+      "command": "bun",
+      "args": ["./src/wechat-channel.ts"]
+    }
+  }
+}
