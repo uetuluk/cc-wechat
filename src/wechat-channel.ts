@@ -79,8 +79,9 @@ async function login(
   console.error('[wechat] No saved credentials, starting QR login...')
   const qr = await client.getQrCode()
 
-  // Generate text-art QR code for the elicitation message
-  const qrText = await generateQrText(qr.qrcode)
+  // Generate text-art QR code from the scannable URL
+  const qrUrl = qr.qrcode_img_content
+  const qrText = await generateQrText(qrUrl)
 
   // Use MCP elicitation to show QR code to the user and wait for scan
   const elicitPromise = mcp.elicitInput({
@@ -89,6 +90,7 @@ async function login(
       `WeChat Login Required\n\n` +
       `Open WeChat on your phone, tap + > Scan, and scan this QR code:\n\n` +
       `${qrText}\n\n` +
+      `Or open this URL on your phone: ${qrUrl}\n\n` +
       `Click "Confirm" below after you have scanned and approved in WeChat.`,
     requestedSchema: {
       type: 'object',
