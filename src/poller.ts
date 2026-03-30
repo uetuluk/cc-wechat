@@ -4,7 +4,7 @@ import type { WeixinMessage } from './types'
 export async function startPoller(
   client: ILinkClient,
   initialCursor: string,
-  onMessage: (msg: WeixinMessage) => void | Promise<void>,
+  onMessage: (msg: WeixinMessage) => void,
   signal: AbortSignal,
 ): Promise<void> {
   let cursor = initialCursor
@@ -23,7 +23,7 @@ export async function startPoller(
       cursor = response.get_updates_buf
 
       for (const msg of response.msgs) {
-        await onMessage(msg)
+        onMessage(msg)
       }
     } catch (err) {
       if (signal.aborted) break

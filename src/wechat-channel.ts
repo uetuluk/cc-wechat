@@ -268,45 +268,45 @@ async function main() {
   await startPoller(
     client,
     '',
-    async (msg: WeixinMessage) => {
-      const senderId = msg.from_user_id
-      console.error(`[wechat] Received message from ${senderId}`)
-
-      // Gate on sender allowlist (empty = allow all for initial setup)
-      if (allowed.size > 0 && !allowed.has(senderId)) {
-        console.error(
-          `[wechat] Blocked message from ${senderId} (not in allowlist)`,
-        )
-        return
-      }
-
-      // Store context token for replies
-      contextTokens.set(senderId, msg.context_token)
-      lastSenderId = senderId
-
-      const text = extractText(msg)
-      console.error(`[wechat] Message text: ${text}`)
-
-      // Check for permission verdict
-      const m = PERMISSION_REPLY_RE.exec(text)
-      if (m) {
-        console.error(`[wechat] Permission verdict: ${m[1]} ${m[2]}`)
-        await mcp.notification({
-          method: 'notifications/claude/channel/permission' as any,
-          params: {
-            request_id: m[2].toLowerCase(),
-            behavior: m[1].toLowerCase().startsWith('y')
-              ? 'allow'
-              : 'deny',
-          },
-        })
-        return
-      }
-
-      // Forward as channel event
-      console.error(`[wechat] Forwarding to Claude Code as channel event`)
+    (msg: WeixinMessage) => {
       try {
-        await mcp.notification({
+        const senderId = msg.from_user_id
+        console.error(`[wechat] Received message from ${senderId}`)
+
+        // Gate on sender allowlist (empty = allow all for initial setup)
+        if (allowed.size > 0 && !allowed.has(senderId)) {
+          console.error(
+            `[wechat] Blocked message from ${senderId} (not in allowlist)`,
+          )
+          return
+        }
+
+        // Store context token for replies
+        contextTokens.set(senderId, msg.context_token)
+        lastSenderId = senderId
+
+        const text = extractText(msg)
+        console.error(`[wechat] Message text: ${text}`)
+
+        // Check for permission verdict
+        const m = PERMISSION_REPLY_RE.exec(text)
+        if (m) {
+          console.error(`[wechat] Permission verdict: ${m[1]} ${m[2]}`)
+          void mcp.notification({
+            method: 'notifications/claude/channel/permission' as any,
+            params: {
+              request_id: m[2].toLowerCase(),
+              behavior: m[1].toLowerCase().startsWith('y')
+                ? 'allow'
+                : 'deny',
+            },
+          })
+          return
+        }
+
+        // Forward as channel event (fire-and-forget, matching fakechat pattern)
+        console.error(`[wechat] Forwarding to Claude Code as channel event`)
+        void mcp.notification({
           method: 'notifications/claude/channel',
           params: {
             content: text,
@@ -315,9 +315,8 @@ async function main() {
             },
           },
         })
-        console.error(`[wechat] Notification sent successfully`)
       } catch (err) {
-        console.error(`[wechat] Notification error:`, err)
+        console.error(`[wechat] Error handling message:`, err)
       }
     },
     abort.signal,
