@@ -280,9 +280,8 @@ async function main() {
           ],
         }
       }
-      const result = await client.sendMessage(from_user_id, tokenRecord.context_token, text)
-      console.error(`[wechat] sendMessage result: ${JSON.stringify(result)}`)
-      return { content: [{ type: 'text' as const, text: `sent (api response: ${JSON.stringify(result)})` }] }
+      await client.sendMessage(from_user_id, tokenRecord.context_token, text)
+      return { content: [{ type: 'text' as const, text: 'sent' }] }
     }
     throw new Error(`unknown tool: ${req.params.name}`)
   })
@@ -361,15 +360,9 @@ async function main() {
     (msg: WeixinMessage) => {
       try {
         const senderId = msg.from_user_id
-        console.error(`[wechat] Received message from ${senderId}`)
 
         // Gate on sender allowlist (empty = allow all for initial setup)
-        if (allowed.size > 0 && !allowed.has(senderId)) {
-          console.error(
-            `[wechat] Blocked message from ${senderId} (not in allowlist)`,
-          )
-          return
-        }
+        if (allowed.size > 0 && !allowed.has(senderId)) return
 
         // Store context token for replies (persist to file)
         contextTokens.set(senderId, {
@@ -380,12 +373,10 @@ async function main() {
         lastSenderId = senderId
 
         const text = extractText(msg)
-        console.error(`[wechat] Message text: ${text}`)
 
         // Check for permission verdict
         const m = PERMISSION_REPLY_RE.exec(text)
         if (m) {
-          console.error(`[wechat] Permission verdict: ${m[1]} ${m[2]}`)
           void mcp.notification({
             method: 'notifications/claude/channel/permission' as any,
             params: {
@@ -398,8 +389,7 @@ async function main() {
           return
         }
 
-        // Forward as channel event (fire-and-forget, matching fakechat pattern)
-        console.error(`[wechat] Forwarding to Claude Code as channel event`)
+        // Forward as channel event
         void mcp.notification({
           method: 'notifications/claude/channel',
           params: {

@@ -1,12 +1,37 @@
 {
   "name": "claude-code-wechat-channel",
-  "module": "index.ts",
+  "version": "0.1.0",
+  "description": "Claude Code channel for WeChat via the iLink bot API. Two-way chat with permission relay.",
+  "module": "src/wechat-channel.ts",
   "type": "module",
-  "private": true,
+  "bin": {
+    "claude-code-wechat": "./src/wechat-channel.ts"
+  },
+  "files": [
+    "src/",
+    "access.json",
+    ".mcp.json",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "start": "bun ./src/wechat-channel.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "claude-code",
+    "wechat",
+    "mcp",
+    "channel",
+    "ilink",
+    "weixin"
+  ],
+  "author": "Utku Ege Tuluk",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uetuluk/claude-code-wechat-channel"
   },
   "devDependencies": {
     "@types/bun": "latest"
