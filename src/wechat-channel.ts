@@ -14,11 +14,24 @@ import { readFile, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
 import { join, dirname } from 'path'
 
-// --- Paths ---
+// --- Kill previous instances on startup (pidfile-based) ---
 const PROJECT_DIR = dirname(new URL(import.meta.url).pathname).replace(
   '/src',
   '',
 )
+const PID_FILE = join(PROJECT_DIR, '.wechat-channel.pid')
+
+// Kill any previous instance
+try {
+  if (existsSync(PID_FILE)) {
+    const oldPid = parseInt(await readFile(PID_FILE, 'utf-8'), 10)
+    if (oldPid && oldPid !== process.pid) {
+      try { process.kill(oldPid, 'SIGTERM') } catch {}
+    }
+  }
+} catch {}
+// Write our PID
+await writeFile(PID_FILE, String(process.pid))
 const CREDENTIALS_PATH = join(PROJECT_DIR, 'credentials.json')
 const ACCESS_PATH = join(PROJECT_DIR, 'access.json')
 
