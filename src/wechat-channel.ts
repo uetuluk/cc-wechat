@@ -254,6 +254,7 @@ async function main() {
   client.setToken(token)
 
   console.error('[wechat] Connected and logged in, starting message poller...')
+  await writeFile(join(PROJECT_DIR, 'debug-startup.log'), `${new Date().toISOString()} token=${token.substring(0, 10)}... poller starting\n`, { flag: 'a' })
 
   // --- Permission verdict regex ---
   const PERMISSION_REPLY_RE =
