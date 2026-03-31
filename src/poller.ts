@@ -22,7 +22,7 @@ export async function startPoller(
     try {
       await debugLog(`calling getUpdates with cursor="${cursor.substring(0, 20)}..."`)
       const response = await client.getUpdates(cursor)
-      await debugLog(`getUpdates returned ret=${response.ret} msgs=${response.msgs?.length ?? 'undefined'} raw=${JSON.stringify(response).substring(0, 200)}`)
+      await debugLog(`getUpdates returned ret=${response.ret} msgs=${response.msgs?.length ?? 'undefined'} raw=${JSON.stringify(response).substring(0, 500)}`)
 
       if (response.ret !== undefined && response.ret !== 0) {
         await debugLog(`error ret=${response.ret}, retrying in 5s`)
