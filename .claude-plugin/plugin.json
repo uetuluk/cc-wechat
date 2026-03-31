@@ -1,12 +1,12 @@
 {
-  "name": "wechat-channel",
+  "name": "cc-wechat",
   "description": "WeChat channel for Claude Code — two-way messaging via iLink bot API with permission relay",
   "version": "0.1.0",
   "author": {
     "name": "Utku Ege Tuluk"
   },
-  "homepage": "https://github.com/uetuluk/claude-code-wechat-channel",
-  "repository": "https://github.com/uetuluk/claude-code-wechat-channel",
+  "homepage": "https://github.com/uetuluk/cc-wechat",
+  "repository": "https://github.com/uetuluk/cc-wechat",
   "license": "MIT",
   "keywords": ["wechat", "channel", "mcp", "ilink", "weixin", "chat"]
 }

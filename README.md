@@ -24,28 +24,28 @@ Add the marketplace and install:
 
 ```bash
 # Add the marketplace
-/plugin marketplace add uetuluk/claude-code-wechat-channel
+/plugin marketplace add uetuluk/cc-wechat
 
 # Install the plugin
-/plugin install wechat-channel@claude-code-wechat-channel
+/plugin install cc-wechat@cc-wechat
 ```
 
 Then start Claude Code with the channel enabled:
 
 ```bash
-claude --channels plugin:wechat-channel@claude-code-wechat-channel
+claude --channels plugin:cc-wechat@cc-wechat
 ```
 
 > **Note:** During the research preview, custom channels require the development flag:
 > ```bash
-> claude --dangerously-load-development-channels plugin:wechat-channel@claude-code-wechat-channel
+> claude --dangerously-load-development-channels plugin:cc-wechat@cc-wechat
 > ```
 
 ### Via Local Plugin Directory
 
 ```bash
-git clone https://github.com/uetuluk/claude-code-wechat-channel.git
-cd claude-code-wechat-channel
+git clone https://github.com/uetuluk/cc-wechat.git
+cd cc-wechat
 bun install
 
 claude --plugin-dir . --dangerously-load-development-channels server:wechat
@@ -54,7 +54,7 @@ claude --plugin-dir . --dangerously-load-development-channels server:wechat
 ### Via npm
 
 ```bash
-npm install -g claude-code-wechat-channel
+npm install -g cc-wechat
 ```
 
 ## Setup

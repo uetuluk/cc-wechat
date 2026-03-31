@@ -1,5 +1,5 @@
 {
-  "name": "claude-code-wechat-channel",
+  "name": "cc-wechat",
   "owner": {
     "name": "Utku Ege Tuluk"
   },
@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "wechat-channel",
+      "name": "cc-wechat",
       "source": "./",
       "description": "WeChat channel for Claude Code — two-way messaging via iLink bot API with permission relay",
       "version": "0.1.0",

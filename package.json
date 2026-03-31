@@ -1,11 +1,11 @@
 {
-  "name": "claude-code-wechat-channel",
+  "name": "cc-wechat",
   "version": "0.1.0",
   "description": "Claude Code channel for WeChat via the iLink bot API. Two-way chat with permission relay.",
   "module": "src/wechat-channel.ts",
   "type": "module",
   "bin": {
-    "claude-code-wechat": "./src/wechat-channel.ts"
+    "cc-wechat": "./src/wechat-channel.ts"
   },
   "files": [
     "src/",
@@ -31,7 +31,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/uetuluk/claude-code-wechat-channel"
+    "url": "https://github.com/uetuluk/cc-wechat"
   },
   "devDependencies": {
     "@types/bun": "latest"
