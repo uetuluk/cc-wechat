@@ -145,8 +145,24 @@ async function login(
   return status.bot_token!
 }
 
-// --- Context token store (maps user_id -> latest context_token) ---
-const contextTokens = new Map<string, string>()
+// --- Context token store (file-backed, survives process restarts) ---
+const CONTEXT_TOKENS_PATH = join(PROJECT_DIR, '.context-tokens.json')
+
+async function loadContextTokens(): Promise<Map<string, string>> {
+  try {
+    if (!existsSync(CONTEXT_TOKENS_PATH)) return new Map()
+    const data = JSON.parse(await readFile(CONTEXT_TOKENS_PATH, 'utf-8'))
+    return new Map(Object.entries(data))
+  } catch {
+    return new Map()
+  }
+}
+
+async function saveContextTokens(tokens: Map<string, string>): Promise<void> {
+  await writeFile(CONTEXT_TOKENS_PATH, JSON.stringify(Object.fromEntries(tokens), null, 2))
+}
+
+const contextTokens = await loadContextTokens()
 
 // --- Main ---
 
@@ -299,8 +315,9 @@ async function main() {
           return
         }
 
-        // Store context token for replies
+        // Store context token for replies (persist to file)
         contextTokens.set(senderId, msg.context_token)
+        saveContextTokens(contextTokens).catch(() => {})
         lastSenderId = senderId
 
         const text = extractText(msg)

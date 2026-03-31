@@ -38,4 +38,5 @@ credentials.json
 
 # runtime
 .wechat-channel.pid
+.context-tokens.json
 debug-*.log
