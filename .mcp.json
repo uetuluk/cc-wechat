@@ -2,7 +2,7 @@
   "mcpServers": {
     "wechat": {
       "command": "bun",
-      "args": ["./src/wechat-channel.ts"]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/src/wechat-channel.ts"]
     }
   }
 }

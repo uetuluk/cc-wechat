@@ -16,19 +16,50 @@ A [Claude Code channel](https://code.claude.com/docs/en/channels-reference) that
 - [Claude Code](https://code.claude.com) v2.1.81+
 - A personal WeChat account
 
-## Quick Start
+## Installation
+
+### Via Plugin Marketplace (recommended)
+
+Add the marketplace and install:
 
 ```bash
-# Clone and install
+# Add the marketplace
+/plugin marketplace add uetuluk/claude-code-wechat-channel
+
+# Install the plugin
+/plugin install wechat-channel@claude-code-wechat-channel
+```
+
+Then start Claude Code with the channel enabled:
+
+```bash
+claude --channels plugin:wechat-channel@claude-code-wechat-channel
+```
+
+> **Note:** During the research preview, custom channels require the development flag:
+> ```bash
+> claude --dangerously-load-development-channels plugin:wechat-channel@claude-code-wechat-channel
+> ```
+
+### Via Local Plugin Directory
+
+```bash
 git clone https://github.com/uetuluk/claude-code-wechat-channel.git
 cd claude-code-wechat-channel
 bun install
 
-# Start Claude Code with the channel
-claude --dangerously-load-development-channels server:wechat
+claude --plugin-dir . --dangerously-load-development-channels server:wechat
 ```
 
-On first run, a QR code dialog appears — scan it with WeChat to log in. Credentials are saved to `credentials.json` for subsequent sessions.
+### Via npm
+
+```bash
+npm install -g claude-code-wechat-channel
+```
+
+## Setup
+
+On first run, a QR code dialog appears in Claude Code — scan it with WeChat to log in. Credentials are saved locally for subsequent sessions.
 
 ## How It Works
 
@@ -77,10 +108,8 @@ src/
 ## Development
 
 ```bash
-# Run tests
+bun install
 bun test
-
-# Type check
 bun run typecheck
 ```
 

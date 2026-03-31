@@ -1,0 +1,20 @@
+{
+  "name": "claude-code-wechat-channel",
+  "owner": {
+    "name": "Utku Ege Tuluk"
+  },
+  "metadata": {
+    "description": "WeChat channel plugin for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "wechat-channel",
+      "source": "./",
+      "description": "WeChat channel for Claude Code — two-way messaging via iLink bot API with permission relay",
+      "version": "0.1.0",
+      "license": "MIT",
+      "keywords": ["wechat", "channel", "mcp", "ilink", "weixin"],
+      "category": "channels"
+    }
+  ]
+}
