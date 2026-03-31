@@ -217,8 +217,9 @@ async function main() {
           ],
         }
       }
-      await client.sendMessage(from_user_id, contextToken, text)
-      return { content: [{ type: 'text' as const, text: 'sent' }] }
+      const result = await client.sendMessage(from_user_id, contextToken, text)
+      console.error(`[wechat] sendMessage result: ${JSON.stringify(result)}`)
+      return { content: [{ type: 'text' as const, text: `sent (api response: ${JSON.stringify(result)})` }] }
     }
     throw new Error(`unknown tool: ${req.params.name}`)
   })
