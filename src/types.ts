@@ -71,12 +71,15 @@ export interface GetUpdatesResponse {
 
 export interface SendMessageRequest {
   msg: {
+    from_user_id?: string
     to_user_id: string
-    message_type: number
-    message_state: number
+    client_id?: string
+    message_type?: number
+    message_state?: number
     context_token: string
-    item_list: MessageItem[]
+    item_list?: MessageItem[]
   }
+  base_info?: { channel_version: string }
 }
 
 export interface SendMessageResponse {

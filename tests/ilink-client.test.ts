@@ -6,6 +6,11 @@ import type { GetUpdatesResponse, SendMessageResponse, QrCodeResponse, QrStatusR
 const mockFetch = mock(() => Promise.resolve(new Response('{}', { status: 200 })))
 
 describe('createILinkClient', () => {
+  function getFetchCall(index: number): [string, RequestInit] {
+    const call = mockFetch.mock.calls[index] as unknown as [string, RequestInit]
+    return call
+  }
+
   beforeEach(() => {
     mockFetch.mockClear()
     globalThis.fetch = mockFetch as any
@@ -19,7 +24,7 @@ describe('createILinkClient', () => {
     const result = await client.getQrCode()
 
     expect(result.qrcode).toBe('abc')
-    const call = mockFetch.mock.calls[0]
+    const call = getFetchCall(0)
     expect(call[0]).toContain('/ilink/bot/get_bot_qrcode?bot_type=3')
   })
 
@@ -44,7 +49,7 @@ describe('createILinkClient', () => {
     const result = await client.getUpdates('cursor1')
 
     expect(result.get_updates_buf).toBe('cursor2')
-    const [url, opts] = mockFetch.mock.calls[0]
+    const [url, opts] = getFetchCall(0)
     expect(url).toContain('/ilink/bot/getupdates')
     expect((opts as any).headers.Authorization).toBe('Bearer mytoken')
   })
@@ -56,10 +61,17 @@ describe('createILinkClient', () => {
     const client = createILinkClient('mytoken')
     await client.sendMessage('user@im.wechat', 'ctx_tok', 'hello')
 
-    const [url, opts] = mockFetch.mock.calls[0]
+    const [url, opts] = getFetchCall(0)
     expect(url).toContain('/ilink/bot/sendmessage')
     const body = JSON.parse((opts as any).body)
     expect(body.msg.context_token).toBe('ctx_tok')
     expect(body.msg.item_list[0].text_item.text).toBe('hello')
+    expect(body.msg.from_user_id).toBe('')
+    expect(body.msg.client_id).toContain('claude-code-wechat-')
+    expect(body.msg.message_type).toBe(2)
+    expect(body.msg.message_state).toBe(2)
+    expect(body.base_info.channel_version).toBe('1.0.2')
+    expect((opts as any).headers['iLink-App-Id']).toBe('bot')
+    expect((opts as any).headers['iLink-App-ClientVersion']).toBe('65538')
   })
 })

@@ -83,7 +83,7 @@ async function login(
   const qrText = await generateQrText(qrUrl)
 
   // Use MCP elicitation to show QR code to the user and wait for scan
-  const elicitPromise = mcp.elicitInput({
+  void mcp.elicitInput({
     mode: 'form',
     message:
       `WeChat Login Required\n\n` +
@@ -133,19 +133,75 @@ async function login(
 
 // --- Context token store (file-backed, survives process restarts) ---
 const CONTEXT_TOKENS_PATH = join(PROJECT_DIR, '.context-tokens.json')
+const POLLER_STATE_PATH = join(PROJECT_DIR, '.poller-state.json')
 
-async function loadContextTokens(): Promise<Map<string, string>> {
+interface ContextTokenRecord {
+  context_token: string
+  updated_at: string
+}
+
+interface PollerState {
+  get_updates_buf: string
+  updated_at: string
+}
+
+async function loadContextTokens(): Promise<Map<string, ContextTokenRecord>> {
   try {
     if (!existsSync(CONTEXT_TOKENS_PATH)) return new Map()
     const data = JSON.parse(await readFile(CONTEXT_TOKENS_PATH, 'utf-8'))
-    return new Map(Object.entries(data))
+    const entries = Object.entries(data).map(([userId, value]) => {
+      if (typeof value === 'string') {
+        return [
+          userId,
+          {
+            context_token: value,
+            updated_at: new Date(0).toISOString(),
+          },
+        ] as const
+      }
+
+      const record = value as Partial<ContextTokenRecord>
+      return [
+        userId,
+        {
+          context_token: record.context_token ?? '',
+          updated_at: record.updated_at ?? new Date(0).toISOString(),
+        },
+      ] as const
+    }).filter(([, value]) => value.context_token)
+    return new Map(entries)
   } catch {
     return new Map()
   }
 }
 
-async function saveContextTokens(tokens: Map<string, string>): Promise<void> {
+async function saveContextTokens(tokens: Map<string, ContextTokenRecord>): Promise<void> {
   await writeFile(CONTEXT_TOKENS_PATH, JSON.stringify(Object.fromEntries(tokens), null, 2))
+}
+
+async function loadPollerState(): Promise<PollerState> {
+  try {
+    if (!existsSync(POLLER_STATE_PATH)) {
+      return {
+        get_updates_buf: '',
+        updated_at: new Date(0).toISOString(),
+      }
+    }
+    const data = JSON.parse(await readFile(POLLER_STATE_PATH, 'utf-8')) as Partial<PollerState>
+    return {
+      get_updates_buf: data.get_updates_buf ?? '',
+      updated_at: data.updated_at ?? new Date(0).toISOString(),
+    }
+  } catch {
+    return {
+      get_updates_buf: '',
+      updated_at: new Date(0).toISOString(),
+    }
+  }
+}
+
+async function savePollerState(state: PollerState): Promise<void> {
+  await writeFile(POLLER_STATE_PATH, JSON.stringify(state, null, 2))
 }
 
 const contextTokens = await loadContextTokens()
@@ -153,7 +209,12 @@ const contextTokens = await loadContextTokens()
 // --- Main ---
 
 async function main() {
-  const client = createILinkClient()
+  const pollerState = await loadPollerState()
+  const savedCredentials = await loadCredentials()
+  const client = createILinkClient(
+    savedCredentials?.bot_token,
+    savedCredentials?.baseurl ?? undefined,
+  )
 
   // Load sender allowlist
   const allowed = await loadAllowlist()
@@ -208,8 +269,8 @@ async function main() {
         from_user_id: string
         text: string
       }
-      const contextToken = contextTokens.get(from_user_id)
-      if (!contextToken) {
+      const tokenRecord = contextTokens.get(from_user_id)
+      if (!tokenRecord?.context_token) {
         return {
           content: [
             {
@@ -219,7 +280,7 @@ async function main() {
           ],
         }
       }
-      const result = await client.sendMessage(from_user_id, contextToken, text)
+      const result = await client.sendMessage(from_user_id, tokenRecord.context_token, text)
       console.error(`[wechat] sendMessage result: ${JSON.stringify(result)}`)
       return { content: [{ type: 'text' as const, text: `sent (api response: ${JSON.stringify(result)})` }] }
     }
@@ -251,14 +312,14 @@ async function main() {
         )
         return
       }
-      const contextToken = contextTokens.get(lastSenderId)
-      if (!contextToken) return
+      const tokenRecord = contextTokens.get(lastSenderId)
+      if (!tokenRecord?.context_token) return
 
       const prompt =
         `Claude wants to run ${params.tool_name}:\n${params.description}\n\n` +
         `Reply "yes ${params.request_id}" or "no ${params.request_id}"`
 
-      await client.sendMessage(lastSenderId, contextToken, prompt)
+      await client.sendMessage(lastSenderId, tokenRecord.context_token, prompt)
     },
   )
 
@@ -268,9 +329,12 @@ async function main() {
   // Now login to WeChat via MCP elicitation (shows QR code to user)
   const token = await login(client, mcp)
   client.setToken(token)
+  const refreshedCredentials = await loadCredentials()
+  if (refreshedCredentials?.baseurl) {
+    client.setBaseUrl(refreshedCredentials.baseurl)
+  }
 
   console.error('[wechat] Connected and logged in, starting message poller...')
-  await writeFile(join(PROJECT_DIR, 'debug-startup.log'), `${new Date().toISOString()} token=${token.substring(0, 10)}... poller starting\n`, { flag: 'a' })
 
   // --- Permission verdict regex ---
   const PERMISSION_REPLY_RE =
@@ -293,14 +357,11 @@ async function main() {
 
   await startPoller(
     client,
-    '',
+    pollerState.get_updates_buf,
     (msg: WeixinMessage) => {
       try {
         const senderId = msg.from_user_id
         console.error(`[wechat] Received message from ${senderId}`)
-        // Debug: write received messages to a file so we can verify the poller works
-        const debugPath = join(PROJECT_DIR, 'debug-messages.log')
-        writeFile(debugPath, `${new Date().toISOString()} from=${senderId} text=${JSON.stringify(msg.item_list)}\n`, { flag: 'a' }).catch(() => {})
 
         // Gate on sender allowlist (empty = allow all for initial setup)
         if (allowed.size > 0 && !allowed.has(senderId)) {
@@ -311,7 +372,10 @@ async function main() {
         }
 
         // Store context token for replies (persist to file)
-        contextTokens.set(senderId, msg.context_token)
+        contextTokens.set(senderId, {
+          context_token: msg.context_token,
+          updated_at: new Date().toISOString(),
+        })
         saveContextTokens(contextTokens).catch(() => {})
         lastSenderId = senderId
 
@@ -350,6 +414,12 @@ async function main() {
       }
     },
     abort.signal,
+    (cursor) => {
+      void savePollerState({
+        get_updates_buf: cursor,
+        updated_at: new Date().toISOString(),
+      })
+    },
   )
 }
 
