@@ -24,8 +24,8 @@ export async function startPoller(
       const response = await client.getUpdates(cursor)
       await debugLog(`getUpdates returned ret=${response.ret} msgs=${response.msgs?.length ?? 'undefined'} raw=${JSON.stringify(response).substring(0, 200)}`)
 
-      if (response.ret !== 0) {
-        await debugLog(`non-zero ret=${response.ret}, retrying in 5s`)
+      if (response.ret !== undefined && response.ret !== 0) {
+        await debugLog(`error ret=${response.ret}, retrying in 5s`)
         await new Promise(r => setTimeout(r, 5000))
         continue
       }

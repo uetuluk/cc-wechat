@@ -63,10 +63,10 @@ export interface GetUpdatesRequest {
 }
 
 export interface GetUpdatesResponse {
-  ret: number
+  ret?: number
   msgs: WeixinMessage[]
   get_updates_buf: string
-  longpolling_timeout_ms: number
+  longpolling_timeout_ms?: number
 }
 
 export interface SendMessageRequest {
