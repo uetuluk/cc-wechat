@@ -14,24 +14,22 @@ import { readFile, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
 import { join, dirname } from 'path'
 
-// --- Kill previous instances on startup (pidfile-based) ---
+// --- Kill ALL previous instances on startup ---
 const PROJECT_DIR = dirname(new URL(import.meta.url).pathname).replace(
   '/src',
   '',
 )
-const PID_FILE = join(PROJECT_DIR, '.wechat-channel.pid')
 
-// Kill any previous instance
+// Find and kill all other bun processes running this script
 try {
-  if (existsSync(PID_FILE)) {
-    const oldPid = parseInt(await readFile(PID_FILE, 'utf-8'), 10)
-    if (oldPid && oldPid !== process.pid) {
-      try { process.kill(oldPid, 'SIGTERM') } catch {}
+  const proc = Bun.spawnSync(['pgrep', '-f', 'bun.*wechat-channel'])
+  const pids = proc.stdout.toString().trim().split('\n').map(Number).filter(Boolean)
+  for (const pid of pids) {
+    if (pid !== process.pid) {
+      try { process.kill(pid, 'SIGKILL') } catch {}
     }
   }
 } catch {}
-// Write our PID
-await writeFile(PID_FILE, String(process.pid))
 const CREDENTIALS_PATH = join(PROJECT_DIR, 'credentials.json')
 const ACCESS_PATH = join(PROJECT_DIR, 'access.json')
 
