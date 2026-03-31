@@ -14,22 +14,10 @@ import { readFile, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
 import { join, dirname } from 'path'
 
-// --- Kill ALL previous instances on startup ---
 const PROJECT_DIR = dirname(new URL(import.meta.url).pathname).replace(
   '/src',
   '',
 )
-
-// Find and kill all other bun processes running this script
-try {
-  const proc = Bun.spawnSync(['pgrep', '-f', 'bun.*wechat-channel'])
-  const pids = proc.stdout.toString().trim().split('\n').map(Number).filter(Boolean)
-  for (const pid of pids) {
-    if (pid !== process.pid) {
-      try { process.kill(pid, 'SIGKILL') } catch {}
-    }
-  }
-} catch {}
 const CREDENTIALS_PATH = join(PROJECT_DIR, 'credentials.json')
 const ACCESS_PATH = join(PROJECT_DIR, 'access.json')
 
@@ -288,11 +276,20 @@ async function main() {
   const PERMISSION_REPLY_RE =
     /^\s*(y|yes|n|no)\s+([a-km-z]{5})\s*$/i
 
-  // --- Start polling for WeChat messages ---
+  // --- Shutdown handler: exit when Claude Code closes the MCP connection ---
   const abort = new AbortController()
-
-  process.on('SIGINT', () => abort.abort())
-  process.on('SIGTERM', () => abort.abort())
+  let shuttingDown = false
+  function shutdown(): void {
+    if (shuttingDown) return
+    shuttingDown = true
+    console.error('[wechat] shutting down')
+    abort.abort()
+    setTimeout(() => process.exit(0), 2000)
+  }
+  process.stdin.on('end', shutdown)
+  process.stdin.on('close', shutdown)
+  process.on('SIGTERM', shutdown)
+  process.on('SIGINT', shutdown)
 
   await startPoller(
     client,
