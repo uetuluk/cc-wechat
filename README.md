@@ -54,7 +54,7 @@ claude --plugin-dir . --dangerously-load-development-channels server:wechat
 ### Via npm
 
 ```bash
-npm install -g cc-wechat
+npm install -g @uetuluk/cc-wechat
 ```
 
 ## Setup

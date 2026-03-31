@@ -1,6 +1,6 @@
 {
-  "name": "cc-wechat",
-  "version": "0.1.0",
+  "name": "@uetuluk/cc-wechat",
+  "version": "0.1.1",
   "description": "Claude Code channel for WeChat via the iLink bot API. Two-way chat with permission relay.",
   "module": "src/wechat-channel.ts",
   "type": "module",
