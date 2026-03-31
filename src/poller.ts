@@ -33,7 +33,7 @@ export async function startPoller(
       cursor = response.get_updates_buf
 
       for (const msg of response.msgs) {
-        await debugLog(`delivering message from ${msg.from_user_id}`)
+        await debugLog(`delivering message from ${msg.from_user_id} context_token=${msg.context_token ?? 'MISSING'} keys=${Object.keys(msg).join(',')}`)
         onMessage(msg)
       }
     } catch (err) {
